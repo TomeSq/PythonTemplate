@@ -1,0 +1,33 @@
+{
+	"name": "Python Sample",
+	// Dockerfileでイメージ・コンテナを作成
+	"dockerFile": "Dockerfile",
+	"settings": {
+        "python.pythonPath": "/usr/local/bin/python",
+        "python.linting.pylintEnabled": false,
+        "python.linting.flake8Enabled": true,
+        "python.linting.flake8Args": [
+            "--ignore=E402,E501"
+        ],
+        "python.formatting.provider": "autopep8",
+        "python.formatting.autopep8Args": [
+            "--ignore",
+            "E402,E501",
+            "--max-line-length",
+            "150"
+        ],
+        "[python]": {
+            "editor.formatOnSave": true
+        }
+    },
+	// リモート先のVS Codeにインストールする拡張機能
+	"extensions": [
+		"ms-python.python",
+        "ms-pyright.pyright",
+		"njpwerner.autodocstring",
+		"mosapride.zenkaku",
+		"KevinRose.vsc-python-indent",
+		"ms-python.vscode-pylance"
+	],
+	"postCreateCommand": "pip install -r requirements.txt"
+}
