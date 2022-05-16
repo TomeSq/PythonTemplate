@@ -2,6 +2,7 @@
 	"name": "Python Sample",
 	// Dockerfileでイメージ・コンテナを作成
 	"dockerFile": "Dockerfile",
+    //コンテナ先のvscode設定
 	"settings": {
         "python.pythonPath": "/usr/local/bin/python",
         "python.linting.pylintEnabled": false,
@@ -18,16 +19,27 @@
         ],
         "[python]": {
             "editor.formatOnSave": true
-        }
+        },
+        "python.testing.unittestEnabled": false,
+        "python.testing.nosetestsEnabled": false,
+        // 単体テストツールとしてpytestを有効化
+        "python.testing.pytestEnabled": true,
+        "python.envFile": "${workspaceFolder}/.env",
+        // pytest実行時の引数設定を追加
+        "python.testing.pytestArgs": [
+            "tests"
+        ],
+        // ファイル保存時にテスト対象コードを自動的に探索
+        "python.testing.autoTestDiscoverOnSaveEnabled": true
     },
 	// リモート先のVS Codeにインストールする拡張機能
 	"extensions": [
 		"ms-python.python",
-        "ms-pyright.pyright",
+		"ms-python.vscode-pylance",
 		"njpwerner.autodocstring",
 		"mosapride.zenkaku",
-		"KevinRose.vsc-python-indent",
-		"ms-python.vscode-pylance"
+		"KevinRose.vsc-python-indent"
 	],
+    //コンテナ作成後必要パッケージをインストールする
 	"postCreateCommand": "pip install -r requirements.txt"
 }
