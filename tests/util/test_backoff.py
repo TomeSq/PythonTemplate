@@ -1,11 +1,12 @@
 import logging
+from typing import Tuple
 
 import backoff
 import pytest
 import starlette.status as status
 from fastapi import FastAPI
 from fastapi.responses import Response as fastapi_responses
-from httpx import AsyncClient, HTTPStatusError, Response
+from httpx import AsyncClient, Response
 from testfixtures.logcapture import LogCapture
 
 logger = logging.getLogger(__name__)
@@ -45,60 +46,69 @@ async def test_client_async():
 
 #############################################
 # ロジック
-def fatal_code(e):
-    return 400 <= e.response.status_code < 500
+def retry_check(e: Response):
+    return 500 <= e.status_code < 600
 
 
-@backoff.on_exception(
+#
+@backoff.on_predicate(
+    # フィボナッチ数列によるリトライ
+    # backoff.fibo,
+    # フィボナッチ数列に待ち内で使用するジェネレーター初期化値
+    # max_value=13,
     backoff.expo,
-    # リトライ例外
-    HTTPStatusError,
+    # リトライする条件
+    lambda x: retry_check(x),
     # 諦めるまでに経過する時間
     #    max_time=30,
     # リトライ回数
-    max_tries=3,
-    # リトライ条件
-    giveup=fatal_code,
+    max_tries=5,
     # ロガー
     logger=logger,
 )
 async def get_url(client: AsyncClient, url: str) -> Response:
-    response = await client.get(url=url)
-    response.raise_for_status()
-    return response
+    return await client.get(url=url)
 
 
 #############################################
 
 #############################################
 # テストコード
-@pytest.mark.asyncio
-async def test_get_rul(test_client_async):
-    response: Response = await get_url(client=test_client_async, url="/sucess")
-
-    assert response.status_code == status.HTTP_200_OK
-
-
 def retry_log_count(lc: LogCapture) -> int:
     """
     リトライ回数のカウント
     """
     retry_logs = [s for s in lc.records if "Backing off" in str(s.msg) or "Giving up" in str(s.msg)]
+
     return len(retry_logs)
 
 
-@pytest.mark.asyncio
-async def test_get_rul_faile(test_client_async):
+async def get_response_retrycount(client: AsyncClient, url: str) -> Tuple[Response, int]:
     # Act
     with LogCapture(level=logging.INFO) as lc:
-        try:
-            await get_url(client=test_client_async, url="/faile")
-        except HTTPStatusError as e:
-            logger.error(e)
-            # Asset
-            assert e.response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-            retry_count = retry_log_count(lc)
-            assert retry_count == 3
+        response: Response = await get_url(client=client, url=url)
+
+        return (response, retry_log_count(lc))
+
+
+@pytest.mark.asyncio
+async def test_成功時は即時に抜けること(test_client_async):
+    # Act
+    response, retry_count = await get_response_retrycount(client=test_client_async, url="/sucess")
+
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    assert retry_count == 0
+
+
+@pytest.mark.asyncio
+async def test_失敗した場合はリトライデフォルト5回行われていること(test_client_async):
+    # Act
+    response, retry_count = await get_response_retrycount(client=test_client_async, url="/faile")
+
+    # Assert
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert retry_count == 5
 
 
 #############################################
