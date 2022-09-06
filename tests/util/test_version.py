@@ -1,4 +1,3 @@
-from enum import unique
 from typing import cast
 
 from packaging.version import Version
