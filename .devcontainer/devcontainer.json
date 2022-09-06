@@ -1,45 +1,82 @@
+// ref. https://github.com/Microsoft/vscode-remote-try-python
 {
-	"name": "Python Sample",
-	// Dockerfileでイメージ・コンテナを作成
-	"dockerFile": "Dockerfile",
-    //コンテナ先のvscode設定
-	"settings": {
-        "python.pythonPath": "/usr/local/bin/python",
-        "python.linting.pylintEnabled": false,
-        "python.linting.flake8Enabled": true,
-        "python.linting.flake8Args": [
-            "--ignore=E402,E501"
-        ],
-        "python.formatting.provider": "autopep8",
-        "python.formatting.autopep8Args": [
-            "--ignore",
-            "E402,E501",
-            "--max-line-length",
-            "150"
-        ],
-        "[python]": {
-            "editor.formatOnSave": true
-        },
-        "python.testing.unittestEnabled": false,
-        "python.testing.nosetestsEnabled": false,
-        // 単体テストツールとしてpytestを有効化
-        "python.testing.pytestEnabled": true,
-        "python.envFile": "${workspaceFolder}/.env",
-        // pytest実行時の引数設定を追加
-        "python.testing.pytestArgs": [
-            "tests"
-        ],
-        // ファイル保存時にテスト対象コードを自動的に探索
-        "python.testing.autoTestDiscoverOnSaveEnabled": true
+  "name": "python_dev_container",
+  // Use docker-compose.extend.yml to run a command that keeps the container running.
+  "dockerComposeFile": ["../docker-compose_develop.yml"],
+  "service": "python_dev_container",
+  "workspaceFolder": "/project",
+  "shutdownAction": "stopCompose",
+  // Comment out the next line to run as root instead. Linux users,
+  // update Dockerfile with your user's UID/GID if not 1000.
+  "remoteUser": "vscode",
+  // Use 'settings' to set *default* container specific settings.json values on container create.
+  // You can edit these settings after create using File > Preferences > Settings > Remote.
+  "settings": {
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "terminal.integrated.profiles.linux": {
+      "bash": {
+        "path": "/bin/bash"
+      }
     },
-	// リモート先のVS Codeにインストールする拡張機能
-	"extensions": [
-		"ms-python.python",
-		"ms-python.vscode-pylance",
-		"njpwerner.autodocstring",
-		"mosapride.zenkaku",
-		"KevinRose.vsc-python-indent"
-	],
-    //コンテナ作成後必要パッケージをインストールする
-	"postCreateCommand": "pip install -r requirements.txt"
+    "python.pythonPath": "/usr/local/bin/python",
+    "python.linting.pylintEnabled": false,
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": ["--config=.flake8"],
+    "python.linting.lintOnSave": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": ["--line-length", "100"],
+    //テスト関係
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestEnabled": true,
+    //ファイル保存時にテスト対象を自動的に探索
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    // エディタ上のカバレッジ表示設定
+    // ガター(ブレークポイント等が表示される場所)でのカバレッジ表示有無(default: true)
+    "coverage-gutters.showGutterCoverage": true,
+    // エディタ行でのカバレッジ表示有無(default: false)
+    "coverage-gutters.showLineCoverage": true,
+    // ルーラーでのカバレッジ表示有無(default: false)
+    "coverage-gutters.showRulerCoverage": true,
+
+    "python.analysis.diagnosticMode": "workspace",
+    "python.jediEnabled": false,
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "vsintellicode.python.completionsEnabled": true,
+    "vsintellicode.features.python.deepLearning": "enabled",
+    "vsintellicode.modify.editor.suggestSelection": "enabled",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    },
+    "editor.guides.bracketPairs": true,
+    "editor.bracketPairColorization.enabled": true,
+    "[python]": {
+      "editor.tabSize": 4
+    },
+    "[json]": {
+      "editor.tabSize": 2
+    },
+    "[yaml]": {
+      "editor.tabSize": 2
+    },
+    "autoDocstring.docstringFormat": "numpy",
+    "autoDocstring.startOnNewLine": true
+  },
+  "extensions": [
+    "ms-python.python",
+    "esbenp.prettier-vscode",
+    "njpwerner.autodocstring",
+    "eamodio.gitlens",
+    "ms-python.vscode-pylance",
+    "VisualStudioExptTeam.vscodeintellicode",
+    "exiasr.hadolint",
+    "bungcip.better-toml",
+    "ryanluker.vscode-coverage-gutters"
+  ],
+  "postStartCommand": "pip install -U pip && poetry install --no-interaction"
 }
