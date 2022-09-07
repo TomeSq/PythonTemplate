@@ -67,7 +67,7 @@ def get_max_tries() -> int:
     # リトライする条件
     lambda x: retry_check(x),
     # 諦めるまでに経過する時間
-    #    max_time=30,
+    max_time=80,
     # 何回でやめるか
     max_tries=get_max_tries,
     # ロガー
@@ -88,9 +88,11 @@ def retry_log_count(lc: LogCapture) -> int:
     retry_logs = [s for s in lc.records if "Backing off" in str(s.msg) or "Giving up" in str(s.msg)]
 
     for log in retry_logs:
-        log_datetime = datetime.datetime.fromtimestamp(log.created)
-        str_datetime = log_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        print(f"{str_datetime}.{log.msecs}\t{log.msg}")
+        log_datetime = datetime.datetime.fromtimestamp(log.created) + datetime.timedelta(
+            milliseconds=log.msecs
+        )
+        str_datetime = log_datetime.strftime("%Y-%m-%d %H:%M:%S.%f")
+        print(f"{str_datetime}\t{log.msg}")
 
     return len(retry_logs)
 
