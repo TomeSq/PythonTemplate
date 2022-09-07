@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 from typing import Tuple
@@ -85,6 +86,11 @@ def retry_log_count(lc: LogCapture) -> int:
     リトライ回数のカウント
     """
     retry_logs = [s for s in lc.records if "Backing off" in str(s.msg) or "Giving up" in str(s.msg)]
+
+    for log in retry_logs:
+        log_datetime = datetime.datetime.fromtimestamp(log.created)
+        str_datetime = log_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        print(f"{str_datetime}.{log.msecs}\t{log.msg}")
 
     return len(retry_logs)
 
