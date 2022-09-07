@@ -24,9 +24,18 @@ def sucess():
     return "Hello, world!"
 
 
+faile_counter: int = 0
+
+
 @app.get("/faile/{count}")
-def faile_count(count):
-    return fastapi_responses(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+def faile_count(count: int):
+    global faile_counter
+
+    if faile_counter < count:
+        faile_counter += 1
+        return fastapi_responses(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return fastapi_responses(status_code=status.HTTP_200_OK)
 
 
 @app.get("/faile")
@@ -161,6 +170,16 @@ async def test_失敗した場合はリトライデフォルト2回行われて�
 
     # Assert
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert retry_count == 2
+
+
+@pytest.mark.asyncio
+async def test_2回目で成功すること(test_client_async: AsyncClient, monkeypatch: MonkeyPatch):
+    # Act
+    response, retry_count = await get_response_retrycount(client=test_client_async, url="/faile/2")
+
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
     assert retry_count == 2
 
 
