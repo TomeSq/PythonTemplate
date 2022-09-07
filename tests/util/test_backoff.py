@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Tuple
 
 import backoff
@@ -7,6 +8,7 @@ import starlette.status as status
 from fastapi import FastAPI
 from fastapi.responses import Response as fastapi_responses
 from httpx import AsyncClient, Response
+from pytest import MonkeyPatch
 from testfixtures.logcapture import LogCapture
 
 logger = logging.getLogger(__name__)
@@ -50,7 +52,11 @@ def retry_check(e: Response):
     return 500 <= e.status_code < 600
 
 
-#
+def get_max_tries() -> int:
+    """最大リトライ回数の取得"""
+    return int(os.environ.get("MAX_TRIES", 5))
+
+
 @backoff.on_predicate(
     # フィボナッチ数列によるリトライ
     # backoff.fibo,
@@ -61,8 +67,8 @@ def retry_check(e: Response):
     lambda x: retry_check(x),
     # 諦めるまでに経過する時間
     #    max_time=30,
-    # リトライ回数
-    max_tries=5,
+    # 何回でやめるか
+    max_tries=get_max_tries,
     # ロガー
     logger=logger,
 )
@@ -110,5 +116,20 @@ async def test_失敗した場合はリトライデフォルト5回行われて�
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert retry_count == 5
 
+
+@pytest.mark.asyncio
+async def test_失敗した場合はリトライデフォルト2回行われていること(test_client_async: AsyncClient, monkeypatch: MonkeyPatch):
+    # Arrage
+    monkeypatch.setenv("MAX_TRIES", "2")
+
+    # Act
+    response, retry_count = await get_response_retrycount(client=test_client_async, url="/faile")
+
+    # Assert
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert retry_count == 2
+
+
+#############################################
 
 #############################################
