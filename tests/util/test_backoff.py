@@ -31,6 +31,7 @@ def faile_count(count):
 
 @app.get("/faile")
 def faile():
+    print("●aceess")
     return fastapi_responses(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -58,18 +59,26 @@ def get_max_tries() -> int:
     return int(os.environ.get("MAX_TRIES", 5))
 
 
+def get_expo_base() -> float:
+    """指数関数 base"""
+    return float(os.environ.get("EXPO_BASE", 1.74))
+
+
+def get_expo_factor() -> float:
+    """指数関数 因子"""
+    return float(os.environ.get("EXPO_FACTOR", 5))
+
+
 @backoff.on_predicate(
-    # フィボナッチ数列によるリトライ
-    # backoff.fibo,
-    # フィボナッチ数列に待ち内で使用するジェネレーター初期化値
-    # max_value=13,
+    # 指数関数リトライ
     backoff.expo,
     # リトライする条件
     lambda x: retry_check(x),
-    # 諦めるまでに経過する時間
-    max_time=80,
-    # 何回でやめるか
-    max_tries=get_max_tries,
+    # backoff.expoの指数関数定数
+    base=get_expo_base,
+    factor=get_expo_factor,
+    # 何回でやめるか(初回も含むので+1する)
+    max_tries=get_max_tries() + 1,
     # ロガー
     logger=logger,
 )
@@ -87,12 +96,22 @@ def retry_log_count(lc: LogCapture) -> int:
     """
     retry_logs = [s for s in lc.records if "Backing off" in str(s.msg) or "Giving up" in str(s.msg)]
 
-    for log in retry_logs:
+    for i, log in enumerate(retry_logs):
         log_datetime = datetime.datetime.fromtimestamp(log.created) + datetime.timedelta(
             milliseconds=log.msecs
         )
+
+        # 前回との差分を求める
+        time_diff: datetime.timedelta = datetime.timedelta(0)
+        if 0 < i:
+            old_log = retry_logs[i - 1]
+            log_old_datetime = datetime.datetime.fromtimestamp(
+                old_log.created
+            ) + datetime.timedelta(milliseconds=old_log.msecs)
+            time_diff = log_datetime - log_old_datetime
+
         str_datetime = log_datetime.strftime("%Y-%m-%d %H:%M:%S.%f")
-        print(f"{str_datetime}\t{log.msg}")
+        print(f"{str_datetime}\t{log.msg} (+{str(time_diff.total_seconds())} sec)")
 
     return len(retry_logs)
 
@@ -103,6 +122,12 @@ async def get_response_retrycount(client: AsyncClient, url: str) -> Tuple[Respon
         response: Response = await get_url(client=client, url=url)
 
         return (response, retry_log_count(lc))
+
+
+@pytest.mark.asyncio
+async def test_タイムアウト確認(test_client_async):
+    # Act
+    await get_url(client=test_client_async, url="/faile")
 
 
 @pytest.mark.asyncio
