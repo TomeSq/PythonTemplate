@@ -75,6 +75,7 @@ def get_expo_factor() -> float:
     # リトライする条件
     lambda x: retry_check(x),
     # backoff.expoの指数関数定数
+    # 次の計算式でライブラリ内で次回周期を計算(factor * base ** n)
     base=get_expo_base,
     factor=get_expo_factor,
     # 何回でやめるか(初回も含むので+1する)
